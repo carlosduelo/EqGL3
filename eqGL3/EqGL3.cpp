@@ -3,8 +3,20 @@
  * Based on eqHello example of Equalizer
  */
 
+#include <GL/gl.h>
 #include <seq/sequel.h>
 #include <stdlib.h>
+#include <string>
+
+namespace
+{
+std::string vertexFileName = "shader.vert";
+std::string fragmentFileName = "shader.frag";
+
+// LIGHTING
+//const float lightPos[] = { 0.0f, 0.0f, 1.0f, 0.0f };
+//const float lightAmbient[] = { 0.2f, 0.2f, 0.2f, 1.0f };
+}
 
 namespace EqGL3 
 {
@@ -16,6 +28,7 @@ public:
 
 protected:
     virtual void draw( co::Object* frameData );
+    virtual bool init( co::Object* initData );
 };
 
 class Application : public seq::Application
@@ -31,10 +44,21 @@ int main( const int argc, char** argv )
 {
     EqGL3::ApplicationPtr app = new EqGL3::Application;
 
-    if( app->init( argc, argv, 0 ) && app->run( 0 ) && app->exit( ))
+    if( !app->init( argc, argv, 0 ) )
+        return EXIT_FAILURE;
+
+
+    if ( app->run( 0 ) && app->exit( ))
         return EXIT_SUCCESS;
 
     return EXIT_FAILURE;
+}
+
+bool EqGL3::Renderer::init( co::Object* /*initData*/ )
+{
+   // Setup Buffers
+   // Setup Uniforms
+   return true;
 }
 
 /** The rendering routine, a.k.a., glutDisplayFunc() */
@@ -48,6 +72,7 @@ void EqGL3::Renderer::draw( co::Object* /*frameData*/ )
     const float lightAmbient[] = { 0.2f, 0.2f, 0.2f, 1.0f };
     glLightfv( GL_LIGHT0, GL_AMBIENT, lightAmbient );
 
+    const Matrix4f modelMatrix = getModelMatrix();
     applyModelMatrix(); // global camera
 
     // render six axis-aligned colored quads around the origin

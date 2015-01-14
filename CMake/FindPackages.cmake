@@ -53,6 +53,7 @@ macro(COMMON_PACKAGE Name)
 endmacro()
 
 common_package(Equalizer 1.8  REQUIRED )
+common_package(GLEW_MX   REQUIRED )
 
 if(EXISTS ${PROJECT_SOURCE_DIR}/CMake/FindPackagesPost.cmake)
   include(${PROJECT_SOURCE_DIR}/CMake/FindPackagesPost.cmake)
@@ -77,9 +78,28 @@ if(Equalizer_name)
   endif()
 endif()
 
+if(GLEW_MX_FOUND)
+  set(GLEW_MX_name GLEW_MX)
+  set(GLEW_MX_FOUND TRUE)
+elseif(GLEW_MX_FOUND)
+  set(GLEW_MX_name GLEW_MX)
+  set(GLEW_MX_FOUND TRUE)
+endif()
+if(GLEW_MX_name)
+  list(APPEND FIND_PACKAGES_DEFINES EQGL3_USE_GLEW_MX)
+  if(NOT COMMON_LIBRARY_TYPE MATCHES "SHARED")
+    list(APPEND EQGL3_DEPENDENT_LIBRARIES GLEW_MX)
+  endif()
+  set(FIND_PACKAGES_FOUND "${FIND_PACKAGES_FOUND} GLEW_MX")
+  link_directories(${${GLEW_MX_name}_LIBRARY_DIRS})
+  if(NOT "${${GLEW_MX_name}_INCLUDE_DIRS}" MATCHES "-NOTFOUND")
+    include_directories(${${GLEW_MX_name}_INCLUDE_DIRS})
+  endif()
+endif()
+
 set(EQGL3_BUILD_DEBS autoconf;automake;avahi-daemon;bison;cmake;doxygen;flex;freeglut3-dev;git;git-review;libavahi-client-dev;libboost-date-time-dev;libboost-filesystem-dev;libboost-program-options-dev;libboost-regex-dev;libboost-serialization-dev;libboost-system-dev;libboost-test-dev;libboost-thread-dev;libgl1-mesa-dev;libglewmx1.6-dev;libhwloc-dev;libibverbs-dev;libjpeg-turbo8-dev;libleveldb-dev;libopencv-dev;libopenmpi-dev;libopenscenegraph-dev;libqt4-dev;librdmacm-dev;libspnav-dev;libturbojpeg;libudt-dev;libx11-dev;openmpi-bin;pkg-config;subversion)
 
-set(EQGL3_DEPENDS Equalizer)
+set(EQGL3_DEPENDS Equalizer;GLEW_MX)
 
 # Write defines.h and options.cmake
 if(NOT PROJECT_INCLUDE_NAME)
