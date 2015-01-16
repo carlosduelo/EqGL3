@@ -78,10 +78,8 @@ protected:
 
     virtual void draw( co::Object* frameData );
 
-#if 0
     virtual void applyRenderContext();
     virtual void applyModelMatrix();
-#endif
 
 private:
     GLuint _program;
@@ -130,52 +128,56 @@ bool Renderer::exit()
     return true;
 }
 
-#if 0
 void Renderer::applyRenderContext()
 {
+    const eq::Matrix4f viewMatrix = getViewMatrix();
+    eq::Matrix4f projMatrix;
+    eq::Frustumf frustum = getFrustum();
+    frustum.compute_matrix( projMatrix );
 
+    glUseProgram( _program );
+    glUniformMatrix4fv( _projMatrixLoc,  1, false, projMatrix.array );
+    glUniformMatrix4fv( _viewMatrixLoc,  1, false, viewMatrix.array );
 }
 
 void Renderer::applyModelMatrix()
 {
+    const eq::Matrix4f modelMatrix = getModelMatrix();
+    glUniformMatrix4fv( _modelMatrixLoc,  1, false, modelMatrix.array );
 }
-#endif
 
 void Renderer::draw( co::Object* /*frameData*/ )
 {
-    std::cout << "HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH" <<std::endl;
     applyRenderContext(); // set up OpenGL State
+    applyModelMatrix();   // global camera
 
-#if 1
-    glUseProgram( _program );
-    #if 0
-    modelMatrix *= getModelMatrix();
-    eq::Matrix4f modelViewMatrix = modelMatrix;
-
+    eq::Matrix4f modelMatrix = getModelMatrix();
     for( unsigned i = 0; i < 6; i++ )
     {
         if( i < 3 )
         {
-            modelViewMatrix.rotate_x( 90.0f );
-            modelViewMatrix.rotate_z( 1.0f );
+            modelMatrix.rotate_x( 1.57f );
+            modelMatrix.rotate_z( 0.017f );
         }
         else if( i == 3 )
         {
-            modelViewMatrix.rotate_x( 90.0f );
-            modelViewMatrix.rotate_y( 1.0f );
+            modelMatrix.rotate_x( 1.57f );
+            modelMatrix.rotate_y( 0.017f );
+        }
+        else if ( i == 4 )
+        {
+            modelMatrix.rotate_x( 3.1416f );
+            modelMatrix.rotate_y( 1.57f );
         }
         else
         {
-            modelViewMatrix.rotate_x( 180.0f );
-            modelViewMatrix.rotate_y( 1.0f );
+            modelMatrix.rotate_x( 3.1416f );
         }
-        // Set Uniforms
-        //const eq::Matrix4f invModelMatrix = modelMatrix
-        //compute_inverse( modelMatrix, invModelMatrix );
-        //glUniformMatrix4fv(viewMatrixLoc,  1, false, invModelMatrix);
-        glUniformMatrix4fv( modelViewMatrixLoc,  1, false, modelViewMatrix.array );
+            
+        glUniformMatrix4fv( _modelMatrixLoc,  1, false, modelMatrix.array );
+
         glBindVertexArray( _vao[i] );
-        glDrawArrays(GL_TRIANGLES , 0, 2);
+        glDrawArrays(GL_TRIANGLE_STRIP , 0, 4);
 
         // Check errors
         if( glGetError() != GL_NO_ERROR )
@@ -184,37 +186,6 @@ void Renderer::draw( co::Object* /*frameData*/ )
             return;
         }
     }
-    #endif
-#else
-    const float lightPos[] = { 0.0f, 0.0f, 1.0f, 0.0f };
-    glLightfv( GL_LIGHT0, GL_POSITION, lightPos );
-
-    const float lightAmbient[] = { 0.2f, 0.2f, 0.2f, 1.0f };
-    glLightfv( GL_LIGHT0, GL_AMBIENT, lightAmbient );
-
-    applyModelMatrix(); // global camera
-
-    // render six axis-aligned colored quads around the origin
-    for( int i = 0; i < 6; i++ )
-    {
-        glColor3f( (i&1) ? 0.5f:1.0f, (i&2) ? 1.0f:0.5f, (i&4) ? 1.0f:0.5f );
-
-        glNormal3f( 0.0f, 0.0f, 1.0f );
-        glBegin( GL_TRIANGLE_STRIP );
-            glVertex3f(  .7f,  .7f, -1.0f );
-            glVertex3f( -.7f,  .7f, -1.0f );
-            glVertex3f(  .7f, -.7f, -1.0f );
-            glVertex3f( -.7f, -.7f, -1.0f );
-        glEnd();
-
-        if( i < 3 )
-            glRotatef(  90.0f, 0.0f, 1.0f, 0.0f );
-        else if( i == 3 )
-            glRotatef(  90.0f, 1.0f, 0.0f, 0.0f );
-        else
-            glRotatef( 180.0f, 1.0f, 0.0f, 0.0f );
-    }
-#endif
 }
 
 bool Renderer::_setupShaders()
@@ -291,22 +262,32 @@ bool Renderer::_setupData()
         return false;
 
     float vertices[] =  {
-                         .7f,  .7f, -1.0f,
-                        -.7f,  .7f, -1.0f,
-                         .7f, -.7f, -1.0f,
-                        -.7f, -.7f, -1.0f,
+                         .7f,  .7f, -1.0f, 1.0f,
+                        -.7f,  .7f, -1.0f, 1.0f,
+                         .7f, -.7f, -1.0f, 1.0f,
+                        -.7f, -.7f, -1.0f, 1.0f
                         };
     // Create Vertex Arrays
     glGenVertexArrays(6, _vao);
 
     for( unsigned i = 0; i < 6; i++ )
     {
-        GLuint buffers[3];
+        GLuint buffers[2];
         float color[] = { ( i & 1 ) ? 0.5f : 1.0f,
+                          ( i & 2 ) ? 1.0f : 0.5f,
+                          ( i & 4 ) ? 1.0f : 0.5f,
+                          ( i & 1 ) ? 0.5f : 1.0f,
+                          ( i & 2 ) ? 1.0f : 0.5f,
+                          ( i & 4 ) ? 1.0f : 0.5f,
+                          ( i & 1 ) ? 0.5f : 1.0f,
+                          ( i & 2 ) ? 1.0f : 0.5f,
+                          ( i & 4 ) ? 1.0f : 0.5f,
+                          ( i & 1 ) ? 0.5f : 1.0f,
                           ( i & 2 ) ? 1.0f : 0.5f,
                           ( i & 4 ) ? 1.0f : 0.5f
                         };
         // Generate buffers
+        glBindVertexArray( _vao[i] );
         glGenBuffers(2, buffers);
 
         // Vertex
@@ -335,7 +316,7 @@ int main( const int argc, char** argv )
 {
     EqGL3::ApplicationPtr app = new EqGL3::Application;
 
-    if( !app->init( argc, argv, 0 ) && app->run( 0 ) && app->exit( ))
+    if( app->init( argc, argv, 0 ) && app->run( 0 ) && app->exit( ))
         return EXIT_SUCCESS;
 
     return EXIT_FAILURE;
